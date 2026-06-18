@@ -1,0 +1,368 @@
+
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Abuelita Serafina SuperMarket</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{--primary:#0d6efd;--dark:#071b3a;--bg:#eef3f9;--card:#fff;--ok:#198754;--bad:#dc3545;--warn:#fd7e14;--txt:#1f2937}
+*{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Arial;background:var(--bg);color:var(--txt);text-transform:uppercase}
+.app{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+aside{background:linear-gradient(180deg,#071b3a,#0d6efd);color:#fff;padding:22px;position:sticky;top:0;height:100vh}
+.logo{font-size:24px;font-weight:800;margin-bottom:4px}.sub{font-size:13px;opacity:.85;margin-bottom:22px}
+aside button{width:100%;text-align:left;background:#ffffff1a;color:white;border:1px solid #ffffff22;padding:12px;border-radius:12px;margin:6px 0;cursor:pointer;font-weight:700}
+aside button:hover{background:#fff;color:#071b3a}
+main{padding:22px 28px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.badge{background:#dbeafe;color:#0d6efd;padding:8px 12px;border-radius:999px;font-weight:800}
+.view{display:none}.view.active{display:block}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:18px}
+.card,section{background:white;border-radius:18px;padding:20px;box-shadow:0 10px 26px #0f172a14;margin-bottom:18px}
+.metric{font-size:34px;color:#0d6efd;font-weight:900;margin-top:6px}.muted{color:#64748b;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px}
+h2{margin-top:0;color:#071b3a}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:block;font-size:13px;font-weight:800;margin-top:10px}input,select{width:100%;padding:10px;border:1px solid #d1d5db;border-radius:12px;margin-top:4px}
+input,select,button,table,h1,h2,h3,p,div,span,label{font-family:Segoe UI,Arial;text-transform:uppercase}
+button{background:#0d6efd;color:white;border:0;border-radius:12px;padding:10px 14px;cursor:pointer;font-weight:800;margin-top:12px}.ok{background:#198754}.bad{background:#dc3545}.warn{background:#fd7e14}.dark{background:#071b3a}
+table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}th,td{border-bottom:1px solid #e5e7eb;padding:10px;text-align:left}th{background:#071b3a;color:white}
+.msg{display:none;padding:12px;border-left:5px solid #0d6efd;background:#dbeafe;border-radius:12px;margin-bottom:12px}.err{border-color:#dc3545;background:#fee2e2}
+.low-stock td{background:#fff7ed;color:#9a3412;font-weight:800}
+.danger-badge{display:inline-block;padding:4px 10px;border-radius:999px;background:#fee2e2;color:#991b1b;font-weight:800;font-size:12px}
+.notif-row td{font-weight:700}
+.notif-high td{background:#fee2e2;color:#991b1b}
+.notif-medium td{background:#fef3c7;color:#92400e}
+.notif-low td{background:#dbeafe;color:#1d4ed8}
+.notif-neutral td{background:#f8fafc;color:#334155}
+.dashboard-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;margin-top:4px}
+.chart-card{background:#fff;border-radius:18px;padding:18px;box-shadow:0 10px 26px #0f172a14}
+.chart-card h3{margin:0 0 12px 0;color:#071b3a;font-size:16px}
+.chart-wrap{position:relative;height:280px}
+.chart-wrap canvas{width:100%;height:100%;display:block}
+.summary-list{margin:0;padding:0;list-style:none;display:grid;gap:10px}
+.summary-list li{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0}
+.summary-list strong{color:#0f172a}
+@media(max-width:850px){.app{grid-template-columns:1fr}aside{height:auto;position:relative}.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside>
+  <div class="logo">SuperMarket Bolivia</div>
+  <div class="sub">Microservicios integrados</div>
+  <button onclick="show('dashboard')">📊 Dashboard</button>
+  <button onclick="show('setup')">🏢 Empresa / Sucursales</button>
+  <button onclick="show('products')">🛒 Productos</button>
+  <button onclick="show('customers')">👤 Clientes</button>
+  <button onclick="show('inventory')">📦 Inventario</button>
+  <button onclick="show('sales')">💵 Ventas / Factura</button>
+  <button onclick="show('reports')">📈 Reportes</button>
+  <button onclick="show('events')">🔔 Notificaciones</button>
+</aside>
+<main>
+<div class="top">
+  <div><h1 id="title">Dashboard</h1><div class="muted">Abuelita Serafina SuperMarket Bolivia S.A.</div></div>
+  <div><span id="loginState" class="badge">No autenticado</span> <button class="dark" onclick="login()">Login admin</button></div>
+</div>
+<div id="msg" class="msg"></div>
+
+<div id="dashboard" class="view active">
+  <div class="cards">
+    <div class="card"><div class="muted">Stock total</div><div id="kStock" class="metric">0</div></div>
+    <div class="card"><div class="muted">Ingresos hoy</div><div id="kIncome" class="metric">0 Bs</div></div>
+    <div class="card"><div class="muted">Ganancia</div><div id="kProfit" class="metric">0 Bs</div></div>
+    <div class="card"><div class="muted">Ventas</div><div id="kSales" class="metric">0</div></div>
+  </div>
+  <section><h2>Panel ejecutivo</h2><div class="dashboard-grid"><div class="chart-card"><h3>Stock por producto</h3><div class="chart-wrap"><canvas id="stockChart"></canvas></div></div><div class="chart-card"><h3>Ventas por forma de pago</h3><div class="chart-wrap"><canvas id="paymentChart"></canvas></div></div><div class="chart-card"><h3>Alertas de stock bajo</h3><ul id="lowStockList" class="summary-list"></ul></div></div></section>
+  <section><h2>Inventario consolidado</h2><table><thead><tr><th>Empresa</th><th>Sucursal</th><th>Producto</th><th>Stock</th><th>Precio</th></tr></thead><tbody id="dashInv"></tbody></table></section>
+</div>
+
+<div id="setup" class="view">
+ <div class="grid">
+  <section><h2>Crear supermercado</h2><label>Nombre</label><input id="companyName" placeholder="Nombre del supermercado"><label>Ciudad</label><input id="companyCity" placeholder="Ciudad"><button onclick="createCompany()">Guardar</button></section>
+  <section><h2>Crear sucursal</h2><label>Empresa</label><select id="branchCompanyId"></select><label>Nombre</label><input id="branchName" placeholder="Nombre de la sucursal"><label>Ciudad</label><input id="branchCity" placeholder="Ciudad"><button onclick="createBranch()">Guardar</button></section>
+ </div>
+ <section><h2>Empresas</h2><table><thead><tr><th>N°</th><th>Nombre</th><th>Ciudad</th></tr></thead><tbody id="companiesT"></tbody></table></section>
+ <section><h2>Sucursales</h2><table><thead><tr><th>N°</th><th>Empresa</th><th>Sucursal</th><th>Ciudad</th></tr></thead><tbody id="branchesT"></tbody></table></section>
+</div>
+
+<div id="products" class="view">
+  <section><h2>Crear producto</h2><div class="row"><div><label>Código de producto</label><input id="prodCode" placeholder="P. EJ. LECHE980"></div><div><label>Nombre comercial</label><input id="prodName" placeholder="Nombre comercial"></div><div><label>Categoría</label><select id="prodCat"></select></div><div><label>Marca</label><input id="prodBrand" placeholder="Marca"></div><div><label>Código de barras</label><input id="prodBar" placeholder="Código de barras"></div><div><label>Precio base</label><input id="prodPrice" placeholder="0.00"></div></div><button onclick="createProduct()">CREAR PRODUCTO</button></section>
+  <section><h2>Cargar productos</h2><input id="productsExcel" type="file" accept=".xlsx,.xls"><button class="ok" onclick="uploadProductsExcel()">Subir Excel</button></section>
+ <section><h2>Productos registrados</h2><table><thead><tr><th>N°</th><th>Código</th><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Stock actual</th><th>Alerta</th></tr></thead><tbody id="productsT"></tbody></table></section>
+</div>
+
+<div id="customers" class="view">
+ <section><h2>Crear cliente</h2><label>Nombre</label><input id="custName" placeholder="Nombre del cliente"><label>Documento</label><input id="custDoc" placeholder="Documento"><button onclick="createCustomer()">Crear cliente</button></section>
+ <section><h2>Clientes</h2><table><thead><tr><th>N°</th><th>Nombre</th><th>Documento</th><th>Puntos</th></tr></thead><tbody id="customersT"></tbody></table></section>
+</div>
+
+<div id="inventory" class="view">
+ <div class="grid">
+  <section><h2>Ingreso de mercadería</h2><p class="muted">Selecciona el producto y la sucursal; los datos comerciales se completan automáticamente.</p><div class="row"><div><label>Producto</label><select id="inProduct" onchange="syncInventorySelection()"></select></div><div><label>Código</label><input id="inCode" readonly></div><div><label>Nombre comercial</label><input id="inName" readonly></div><div><label>Empresa</label><input id="inCompany" readonly></div><div><label>Sucursal</label><select id="inBranch" onchange="syncInventorySelection()"></select></div><div><label>Sucursal asignada</label><input id="inBranchName" readonly></div><div><label>Cantidad</label><input id="inQty" placeholder="0"></div><div><label>Costo unitario</label><input id="inCost" placeholder="0.00"></div><div><label>Precio de venta</label><input id="inPrice" placeholder="0.00"></div><div><label>Stock mínimo</label><input id="inMinStock" placeholder="0"></div></div><button class="ok" onclick="inputInventory()">Registrar ingreso</button></section>
+  <section><h2>Transferencia</h2><p class="muted">Selecciona el producto, la sucursal origen y la sucursal destino. Los datos asociados se completan automáticamente.</p><div class="row"><div><label>Producto</label><select id="trProduct" onchange="syncTransferSelection()"></select></div><div><label>Sucursal origen</label><select id="trOrigin" onchange="syncTransferSelection()"></select></div><div><label>Sucursal destino</label><select id="trDest" onchange="syncTransferSelection()"></select></div><div><label>Empresa</label><input id="trCompany" readonly></div><div><label>Producto seleccionado</label><input id="trProductName" readonly></div><div><label>Nombre destino</label><input id="trDestName" readonly></div><div><label>Cantidad</label><input id="trQty" placeholder="0"></div></div><button class="warn" onclick="transferInventory()">Transferir</button></section>
+ </div>
+ <section><h2 id="kardexTitle">Kardex de producto</h2><div class="row"><div><label>Producto para kardex</label><select id="kardexProduct" onchange="loadKardex()"></select></div></div><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Sucursal</th><th>Cant.</th><th>Stock</th><th>Detalle</th></tr></thead><tbody id="kardexT"></tbody></table></section>
+</div>
+
+<div id="sales" class="view">
+ <section><h2>Registrar venta</h2><p class="muted">Selecciona cliente, producto y sucursal para generar la factura y descontar stock automáticamente.</p><div class="row"><div><label>Cliente</label><select id="saleCustomer" onchange="syncSaleSelection()"></select></div><div><label>Producto</label><select id="saleProduct" onchange="syncSaleSelection()"></select></div><div><label>Sucursal</label><select id="saleBranch" onchange="syncSaleSelection()"></select></div><div><label>Cliente seleccionado</label><input id="saleCustomerName" readonly></div><div><label>Producto seleccionado</label><input id="saleProductName" readonly></div><div><label>Sucursal seleccionada</label><input id="saleBranchName" readonly></div><div><label>Cantidad</label><input id="saleQty" placeholder="0"></div><div><label>Forma de pago</label><select id="salePay"><option value="">Selecciona forma de pago</option><option>Efectivo</option><option>Tarjeta</option><option>QR</option></select></div></div><button class="ok" onclick="createSale(this)">Registrar venta</button></section>
+ <section><h2>Factura</h2><div id="invoiceBox">Sin factura generada.</div></section>
+ <section><h2>Ventas</h2><table><thead><tr><th>Factura</th><th>Cliente</th><th>Producto</th><th>Cant.</th><th>Total</th><th>Pago</th></tr></thead><tbody id="salesT"></tbody></table></section>
+</div>
+
+<div id="reports" class="view">
+ <section><h2>Exportación profesional</h2><div class="row"><button class="ok" onclick="downloadInventoryExcel()">Descargar inventario Excel</button><button class="ok" onclick="downloadSalesExcel()">Descargar ventas Excel</button></div></section>
+ <section><h2>Reporte consolidado de inventario</h2><table><thead><tr><th>Empresa</th><th>Sucursal</th><th>Producto</th><th>Stock</th><th>Alerta</th></tr></thead><tbody id="reportInv"></tbody></table><h3 id="totalInv">Total: 0</h3></section>
+ <section><h2>Ventas del día</h2><table><thead><tr><th>Factura</th><th>Cliente</th><th>Producto</th><th>Cantidad</th><th>Total</th><th>Pago</th></tr></thead><tbody id="reportSales"></tbody></table><h3 id="incomeTxt">Ingresos: 0 Bs</h3></section>
+</div>
+
+<div id="events" class="view">
+ <section><h2>Notificaciones simuladas</h2><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Tipo</th><th>Prioridad</th><th>Contenido</th></tr></thead><tbody id="notificationsT"></tbody></table></section>
+ <section><h2>Eventos de inventario</h2><table><thead><tr><th>Fecha</th><th>Evento</th><th>Contenido</th></tr></thead><tbody id="eventsT"></tbody></table></section>
+</div>
+</main>
+</div>
+
+<script>
+let token="";
+let currentCompanies=[];
+let currentBranches=[];
+let currentProducts=[];
+let currentCustomers=[];
+const URL={auth:"http://localhost:8000",company:"http://localhost:8001",product:"http://localhost:8002",inventory:"http://localhost:8003",customer:"http://localhost:8004",notification:"http://localhost:8005",sales:"http://localhost:8006"};
+const H=()=>({"Content-Type":"application/json","Authorization":"Bearer "+token});
+function show(id){document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));document.getElementById(id).classList.add("active");title.textContent={dashboard:"Dashboard",setup:"Empresa / Sucursales",products:"Productos",customers:"Clientes",inventory:"Inventario",sales:"Ventas / Factura",reports:"Reportes",events:"Notificaciones"}[id];loadAll();}
+function flash(t,e=false){msg.textContent=t;msg.className=e?"msg err":"msg";msg.style.display="block";setTimeout(()=>msg.style.display="none",4500)}
+function normalizeText(value){return String(value||"").trim().toUpperCase()}
+function requireText(value,label){const normalized=normalizeText(value);if(!normalized)throw new Error(`${label} ES OBLIGATORIO`);return normalized}
+function requirePositiveNumber(value,label){const number=Number(value);if(!Number.isFinite(number)||number<=0)throw new Error(`${label} DEBE SER MAYOR A CERO`);return number}
+function requireSelection(value,label){const number=Number(value);if(!Number.isFinite(number)||number<=0)throw new Error(`SELECCIONA ${label}`);return number}
+function syncInventorySelection(){
+const product=currentProducts.find(x=>String(x.id)===String(inProduct.value));
+const branch=currentBranches.find(x=>String(x.id)===String(inBranch.value));
+if(product){inCode.value=product.code||"";inName.value=product.name||"";if(product.base_price!=null)inPrice.value=product.base_price;}
+if(branch){inCompany.value=branch.company_name||"";inBranchName.value=branch.name||"";}
+}
+function syncTransferSelection(){
+const product=currentProducts.find(x=>String(x.id)===String(trProduct.value));
+const origin=currentBranches.find(x=>String(x.id)===String(trOrigin.value));
+const dest=currentBranches.find(x=>String(x.id)===String(trDest.value));
+if(product)trProductName.value=product.name||"";
+if(origin&&dest){trCompany.value=origin.company_name||dest.company_name||"";}
+if(dest){trDestName.value=dest.name||"";}
+}
+function syncSaleSelection(){
+const customer=currentCustomers.find(x=>String(x.id)===String(saleCustomer.value));
+const product=currentProducts.find(x=>String(x.id)===String(saleProduct.value));
+const branch=currentBranches.find(x=>String(x.id)===String(saleBranch.value));
+if(customer)saleCustomerName.value=customer.name||"";
+if(product)saleProductName.value=product.name||"";
+if(branch)saleBranchName.value=branch.company_name?`${branch.company_name} / ${branch.name}`:branch.name||"";
+}
+async function loadKardex(){
+if(!token)return;
+try{
+const productId=kardexProduct.value||(currentProducts[0]&&currentProducts[0].id);
+if(!productId){kardexTitle.textContent="Kardex de producto";kardexT.innerHTML="";return;}
+const data=await api(URL.inventory+`/inventory/kardex/${productId}`,{headers:H()});
+const product=currentProducts.find(x=>String(x.id)===String(productId));
+kardexTitle.textContent=`KARDEX DE PRODUCTO ${product?product.code:""} ${product?product.name:""}`.trim();
+kardexT.innerHTML=data.map(x=>`<tr><td>${new Date(x.date).toLocaleString()}</td><td>${x.movement_type}</td><td>${x.branch_name}</td><td>${x.quantity}</td><td>${x.stock_final}</td><td>${x.detail}</td></tr>`).join("");
+}catch(e){console.log(e)}
+}
+function getProductStockMap(items){
+const stockMap={};
+(items||[]).forEach(item=>{
+const key=String(item.product_id);
+stockMap[key]=(stockMap[key]||0)+Number(item.stock_actual||0);
+});
+return stockMap;
+}
+function getNotificationMeta(type){
+const normalized=normalizeText(type);
+if(normalized.includes("STOCK BAJO")) return {priority:"ALTA", className:"notif-high"};
+if(normalized.includes("VENTA")) return {priority:"MEDIA", className:"notif-medium"};
+if(normalized.includes("TRANSFER")) return {priority:"BAJA", className:"notif-low"};
+return {priority:"NORMAL", className:"notif-neutral"};
+}
+function prepareCanvas(canvas){
+const ctx=canvas.getContext("2d");
+const rect=canvas.getBoundingClientRect();
+const ratio=window.devicePixelRatio||1;
+canvas.width=rect.width*ratio;
+canvas.height=rect.height*ratio;
+ctx.setTransform(ratio,0,0,ratio,0,0);
+return ctx;
+}
+function drawEmptyState(canvas, message){
+const ctx=prepareCanvas(canvas);
+ctx.clearRect(0,0,canvas.clientWidth,canvas.clientHeight);
+ctx.fillStyle="#64748b";
+ctx.font="600 14px Segoe UI, Arial";
+ctx.textAlign="center";
+ctx.fillText(message, canvas.clientWidth/2, canvas.clientHeight/2);
+}
+function drawBarChart(canvas, items){
+if(!items.length){drawEmptyState(canvas,"SIN DATOS PARA MOSTRAR");return;}
+const ctx=prepareCanvas(canvas);
+const w=canvas.clientWidth;
+const h=canvas.clientHeight;
+ctx.clearRect(0,0,w,h);
+const padding={top:20,right:16,bottom:58,left:42};
+const chartW=w-padding.left-padding.right;
+const chartH=h-padding.top-padding.bottom;
+const max=Math.max(...items.map(item=>item.value),1);
+ctx.strokeStyle="#e2e8f0";
+ctx.lineWidth=1;
+for(let i=0;i<=4;i++){
+const y=padding.top+chartH-(chartH/4)*i;
+ctx.beginPath();ctx.moveTo(padding.left,y);ctx.lineTo(w-padding.right,y);ctx.stroke();
+ctx.fillStyle="#64748b";
+ctx.font="12px Segoe UI, Arial";
+ctx.textAlign="right";
+ctx.fillText(Math.round((max/4)*i),padding.left-8,y+4);
+}
+const barGap=12;
+const barW=(chartW-(items.length-1)*barGap)/items.length;
+items.forEach((item,index)=>{
+const x=padding.left+index*(barW+barGap);
+const barH=(item.value/max)*chartH;
+const y=padding.top+chartH-barH;
+const gradient=ctx.createLinearGradient(0,y,0,y+barH);
+gradient.addColorStop(0,"#1d4ed8");
+gradient.addColorStop(1,"#0f172a");
+ctx.fillStyle=gradient;
+ctx.fillRect(x,y,barW,barH);
+ctx.fillStyle="#0f172a";
+ctx.font="600 12px Segoe UI, Arial";
+ctx.textAlign="center";
+const label=item.label.length>12?item.label.slice(0,12)+"…":item.label;
+ctx.fillText(label,x+barW/2,h-32);
+ctx.fillStyle="#1f2937";
+ctx.font="700 12px Segoe UI, Arial";
+ctx.fillText(item.value,x+barW/2,y-8);
+});
+}
+function drawDonutChart(canvas, items){
+if(!items.length){drawEmptyState(canvas,"SIN DATOS PARA MOSTRAR");return;}
+const ctx=prepareCanvas(canvas);
+const w=canvas.clientWidth;
+const h=canvas.clientHeight;
+ctx.clearRect(0,0,w,h);
+const total=items.reduce((sum,item)=>sum+item.value,0)||1;
+const radius=Math.min(w,h)*0.34;
+const cx=w*0.34;
+const cy=h*0.48;
+const colors=["#0d6efd","#10b981","#f59e0b","#8b5cf6","#ef4444","#06b6d4"];
+let start=-Math.PI/2;
+items.forEach((item,index)=>{
+const angle=(item.value/total)*Math.PI*2;
+ctx.beginPath();
+ctx.moveTo(cx,cy);
+ctx.arc(cx,cy,radius,start,start+angle);
+ctx.closePath();
+ctx.fillStyle=colors[index%colors.length];
+ctx.fill();
+start+=angle;
+});
+ctx.globalCompositeOperation="destination-out";
+ctx.beginPath();
+ctx.arc(cx,cy,radius*0.58,0,Math.PI*2);
+ctx.fill();
+ctx.globalCompositeOperation="source-over";
+ctx.fillStyle="#0f172a";
+ctx.font="800 16px Segoe UI, Arial";
+ctx.textAlign="center";
+ctx.fillText("TOTAL",cx,cy-6);
+ctx.font="700 20px Segoe UI, Arial";
+ctx.fillText(String(total),cx,cy+20);
+
+let legendX=w*0.62;
+let legendY=h*0.22;
+ctx.textAlign="left";
+items.forEach((item,index)=>{
+ctx.fillStyle=colors[index%colors.length];
+ctx.fillRect(legendX,legendY+index*28-10,12,12);
+ctx.fillStyle="#0f172a";
+ctx.font="600 12px Segoe UI, Arial";
+ctx.fillText(`${item.label} (${item.value})`,legendX+18,legendY+index*28);
+});
+}
+async function downloadExcelReport(url, filename){
+if(!token)throw new Error("DEBES INICIAR SESIÓN PARA DESCARGAR REPORTES")
+const response=await fetch(url,{headers:H()});
+if(!response.ok)throw new Error("NO SE PUDO DESCARGAR EL REPORTE");
+const blob=await response.blob();
+const link=document.createElement("a");
+const blobUrl=window.URL.createObjectURL(blob);
+link.href=blobUrl;
+link.download=filename;
+document.body.appendChild(link);
+link.click();
+link.remove();
+window.URL.revokeObjectURL(blobUrl);
+}
+function downloadInventoryExcel(){return downloadExcelReport(URL.inventory+"/reports/inventory.xlsx","REPORTE_INVENTARIO.xlsx")}
+function downloadSalesExcel(){return downloadExcelReport(URL.sales+"/reports/sales.xlsx","REPORTE_VENTAS.xlsx")}
+async function api(url,opt={}){let r=await fetch(url,opt);let d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(typeof d.detail=="string"?d.detail:JSON.stringify(d));return d}
+async function login(){try{let d=await api(URL.auth+"/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:"admin",password:"admin123"})});token=d.access_token;loginState.textContent="Autenticado: "+d.role;flash("Login correcto");loadAll()}catch(e){flash(e.message,true)}}
+async function createCompany(){try{const name=requireText(companyName.value,"NOMBRE DE SUPERMERCADO");const city=requireText(companyCity.value,"CIUDAD");let d=await api(URL.company+"/companies",{method:"POST",headers:H(),body:JSON.stringify({name,city})});flash("SUPERMERCADO CREADO");branchCompanyId.value=d.id;loadAll()}catch(e){flash(e.message,true)}}
+async function createBranch(){try{requireSelection(branchCompanyId.value,"UNA EMPRESA");const name=requireText(branchName.value,"NOMBRE DE SUCURSAL");const city=requireText(branchCity.value,"CIUDAD");await api(URL.company+"/branches",{method:"POST",headers:H(),body:JSON.stringify({company_id:+branchCompanyId.value,name,city})});flash("SUCURSAL CREADA");loadAll()}catch(e){flash(e.message,true)}}
+async function createProduct(){try{const code=requireText(prodCode.value,"CÓDIGO DE PRODUCTO");const name=requireText(prodName.value,"NOMBRE COMERCIAL");const category=requireText(prodCat.value,"CATEGORÍA");const brand=requireText(prodBrand.value,"MARCA");const barcode=requireText(prodBar.value,"CÓDIGO DE BARRAS");const base_price=requirePositiveNumber(prodPrice.value,"PRECIO BASE");let payload={code,name,category,brand,barcode,base_price,status:"ACTIVE"};let result=await api(URL.product+"/products",{method:"POST",headers:H(),body:JSON.stringify(payload)});prodCode.value="";flash("PRODUCTO CREADO");loadAll();return result}catch(e){flash(e.message,true)}}
+async function uploadProductsExcel(){try{if(!token)throw new Error("DEBES INICIAR SESIÓN");if(!productsExcel.files.length)throw new Error("SELECCIONA UN ARCHIVO EXCEL");const form=new FormData();form.append("file",productsExcel.files[0]);const result=await api(URL.product+"/products/loadExcel",{method:"POST",headers:{"Authorization":"Bearer "+token},body:form});productsExcel.value="";flash(`EXCEL CARGADO: ${result.created} CREADOS, ${result.updated} ACTUALIZADOS${result.errors.length?`, ${result.errors.length} FILAS CON ERROR`:""}`);loadAll()}catch(e){flash(e.message,true)}}
+async function createCustomer(){try{const name=requireText(custName.value,"NOMBRE DEL CLIENTE");const document=requireText(custDoc.value,"DOCUMENTO");await api(URL.customer+"/customers",{method:"POST",headers:H(),body:JSON.stringify({name,document})});flash("CLIENTE CREADO");loadAll()}catch(e){flash(e.message,true)}}
+async function inputInventory(){try{requireSelection(inProduct.value,"UN PRODUCTO");requireSelection(inBranch.value,"UNA SUCURSAL");const quantity=requirePositiveNumber(inQty.value,"CANTIDAD");const cost=requirePositiveNumber(inCost.value,"COSTO UNITARIO");const price=requirePositiveNumber(inPrice.value,"PRECIO DE VENTA");const stock_minimo=requirePositiveNumber(inMinStock.value,"STOCK MÍNIMO");await api(URL.inventory+"/inventory/input",{method:"POST",headers:H(),body:JSON.stringify({product_id:+inProduct.value,product_code:normalizeText(inCode.value),product_name:normalizeText(inName.value),company_name:normalizeText(inCompany.value),branch_id:+inBranch.value,branch_name:normalizeText(inBranchName.value),quantity,cost,price,stock_minimo})});flash("INVENTARIO INGRESADO");loadAll()}catch(e){flash(e.message,true)}}
+async function transferInventory(){try{requireSelection(trProduct.value,"UN PRODUCTO");requireSelection(trOrigin.value,"SUCURSAL ORIGEN");requireSelection(trDest.value,"SUCURSAL DESTINO");if(String(trOrigin.value)===String(trDest.value))throw new Error("LA SUCURSAL ORIGEN Y DESTINO DEBEN SER DIFERENTES");const quantity=requirePositiveNumber(trQty.value,"CANTIDAD");await api(URL.inventory+"/inventory/transfer",{method:"POST",headers:H(),body:JSON.stringify({product_id:+trProduct.value,branch_origin_id:+trOrigin.value,branch_destination_id:+trDest.value,branch_destination_name:normalizeText(trDestName.value),quantity})});flash("TRANSFERENCIA COMPLETADA");loadAll()}catch(e){flash(e.message,true)}}
+async function createSale(btn){try{requireSelection(saleCustomer.value,"UN CLIENTE");requireSelection(saleProduct.value,"UN PRODUCTO");requireSelection(saleBranch.value,"UNA SUCURSAL");const quantity=requirePositiveNumber(saleQty.value,"CANTIDAD");const payment_type=requireText(salePay.value,"FORMA DE PAGO");const confirmMsg=`¿CONFIRMAS REGISTRAR ESTA VENTA?\n\nCLIENTE: ${saleCustomerName.value}\nPRODUCTO: ${saleProductName.value}\nSUCURSAL: ${saleBranchName.value}\nCANTIDAD: ${quantity}\nFORMA DE PAGO: ${payment_type}`;if(!confirm(confirmMsg))return;if(btn)btn.disabled=true;try{let d=await api(URL.sales+"/sales",{method:"POST",headers:H(),body:JSON.stringify({customer_id:+saleCustomer.value,product_id:+saleProduct.value,branch_id:+saleBranch.value,quantity,payment_type})});invoiceBox.innerHTML=`<div class="card"><h3>${d.invoice}</h3><p><b>CLIENTE:</b> ${d.sale.customer_name}</p><p><b>PRODUCTO:</b> ${d.sale.product_name}</p><p><b>CANTIDAD:</b> ${d.sale.quantity}</p><p><b>TOTAL:</b> ${d.sale.total} BS</p><p><b>PAGO:</b> ${d.sale.payment_type}</p><p><b>GANANCIA:</b> ${d.sale.profit} BS</p></div>`;flash("VENTA REGISTRADA");loadAll()}finally{if(btn)btn.disabled=false}}catch(e){flash(e.message,true)}}
+async function loadAll(){if(!token)return;try{
+let [companies,branches,products,customers,balance,salesList,today,notifs,events,categories]=await Promise.all([
+api(URL.company+"/companies",{headers:H()}),api(URL.company+"/branches",{headers:H()}),api(URL.product+"/products",{headers:H()}),api(URL.customer+"/customers",{headers:H()}),api(URL.inventory+"/inventory/balance",{headers:H()}),api(URL.sales+"/sales",{headers:H()}),api(URL.sales+"/reports/sales/today",{headers:H()}),api(URL.notification+"/notifications",{headers:H()}),api(URL.inventory+"/inventory/events",{headers:H()}),api(URL.product+"/categories",{headers:H()})
+]);
+currentCompanies=companies;currentBranches=branches;currentProducts=products;
+currentCustomers=customers;
+const productStockMap=getProductStockMap(balance.items);
+kStock.textContent=balance.total_general||0;kIncome.textContent=(today.totalIncome||0)+" Bs";kProfit.textContent=(today.totalProfit||0)+" Bs";kSales.textContent=(salesList||[]).length||0;
+companiesT.innerHTML=companies.map(x=>`<tr><td>${x.id}</td><td>${x.name}</td><td>${x.city}</td></tr>`).join("");
+branchCompanyId.innerHTML=["<option value=''>Selecciona una empresa</option>"].concat(companies.map(x=>`<option value="${x.id}">${x.name} - ${x.city}</option>`)).join("");
+branchesT.innerHTML=branches.map(x=>`<tr><td>${x.id}</td><td>${x.company_name}</td><td>${x.name}</td><td>${x.city}</td></tr>`).join("");
+prodCat.innerHTML=["<option value=''>Selecciona una categoría</option>"].concat(categories.map(x=>`<option value="${x}">${x}</option>`)).join("");
+inProduct.innerHTML=["<option value=''>Selecciona un producto</option>"].concat(products.map(x=>`<option value="${x.id}">${x.code} - ${x.name}</option>`)).join("");
+inBranch.innerHTML=["<option value=''>Selecciona una sucursal</option>"].concat(branches.map(x=>`<option value="${x.id}">${x.company_name} / ${x.name} (${x.city})</option>`)).join("");
+if(products.length&&!inProduct.value)inProduct.value=products[0].id;
+if(branches.length&&!inBranch.value)inBranch.value=branches[0].id;
+syncInventorySelection();
+trProduct.innerHTML=["<option value=''>Selecciona un producto</option>"].concat(products.map(x=>`<option value="${x.id}">${x.code} - ${x.name}</option>`)).join("");
+trOrigin.innerHTML=["<option value=''>Sucursal origen</option>"].concat(branches.map(x=>`<option value="${x.id}">${x.company_name} / ${x.name}</option>`)).join("");
+trDest.innerHTML=["<option value=''>Sucursal destino</option>"].concat(branches.map(x=>`<option value="${x.id}">${x.company_name} / ${x.name}</option>`)).join("");
+if(products.length&&!trProduct.value)trProduct.value=products[0].id;
+if(branches.length){if(!trOrigin.value)trOrigin.value=branches[0].id;if(!trDest.value&&branches.length>1)trDest.value=branches[1].id;}
+syncTransferSelection();
+saleCustomer.innerHTML=["<option value=''>SELECCIONA UN CLIENTE</option>"].concat(customers.map(x=>`<option value="${x.id}">${x.name}</option>`)).join("");
+saleProduct.innerHTML=["<option value=''>SELECCIONA UN PRODUCTO</option>"].concat(products.map(x=>`<option value="${x.id}">${x.code} - ${x.name}</option>`)).join("");
+saleBranch.innerHTML=["<option value=''>SELECCIONA UNA SUCURSAL</option>"].concat(branches.map(x=>`<option value="${x.id}">${x.company_name} / ${x.name}</option>`)).join("");
+if(customers.length&&!saleCustomer.value)saleCustomer.value=customers[0].id;
+if(products.length&&!saleProduct.value)saleProduct.value=products[0].id;
+if(branches.length&&!saleBranch.value)saleBranch.value=branches[0].id;
+syncSaleSelection();
+productsT.innerHTML=products.map(x=>{const stock=Number(productStockMap[String(x.id)]||0);const alert=stock<10?'<span class="danger-badge">STOCK BAJO</span>':'OK';return `<tr class="${stock<10?"low-stock":""}"><td>${x.id}</td><td>${x.code}</td><td>${x.name}</td><td>${x.category}</td><td>${x.base_price}</td><td>${stock}</td><td>${alert}</td></tr>`}).join("");
+customersT.innerHTML=customers.map(x=>`<tr><td>${x.id}</td><td>${x.name}</td><td>${x.document}</td><td>${x.points}</td></tr>`).join("");
+let invRows=(balance.items||[]).map(x=>`<tr class="${x.stock_actual<10?"low-stock":""}"><td>${x.company_name}</td><td>${x.branch_name}</td><td>${x.product_name}</td><td>${x.stock_actual}</td><td>${x.price}</td></tr>`).join("");
+dashInv.innerHTML=invRows;reportInv.innerHTML=(balance.items||[]).map(x=>`<tr class="${x.stock_actual<10?"low-stock":""}"><td>${x.company_name}</td><td>${x.branch_name}</td><td>${x.product_name}</td><td>${x.stock_actual}</td><td>${x.stock_actual<10?'<span class="danger-badge">STOCK BAJO</span>':'OK'}</td></tr>`).join("");totalInv.textContent="Total: "+(balance.total_general||0);
+kardexProduct.innerHTML=["<option value=''>SELECCIONA UN PRODUCTO</option>"].concat(products.map(x=>`<option value="${x.id}">${x.code} - ${x.name}</option>`)).join("");
+if(products.length&&!kardexProduct.value)kardexProduct.value=products[0].id;
+await loadKardex();
+salesT.innerHTML=(salesList||[]).map(x=>`<tr><td>${x.invoice_number}</td><td>${x.customer_name}</td><td>${x.product_name}</td><td>${x.quantity}</td><td>${x.total}</td><td>${x.payment_type}</td></tr>`).join("");
+reportSales.innerHTML=salesT.innerHTML;incomeTxt.textContent="Ingresos: "+(today.totalIncome||0)+" Bs";
+notificationsT.innerHTML=notifs.map(x=>{const meta=getNotificationMeta(x.type);return `<tr class="notif-row ${meta.className}"><td>${new Date(x.date).toLocaleString()}</td><td>${x.customer_id}</td><td>${x.type}</td><td><span class="danger-badge">${meta.priority}</span></td><td>${x.content}</td></tr>`}).join("");
+eventsT.innerHTML=events.map(x=>`<tr><td>${new Date(x.date).toLocaleString()}</td><td>${x.event_name}</td><td>${x.content}</td></tr>`).join("");
+const dashboardStock=(balance.items||[]).slice().sort((a,b)=>b.stock_actual-a.stock_actual).slice(0,6).map(item=>({label:item.product_name,value:Number(item.stock_actual||0)}));
+drawBarChart(stockChart,dashboardStock);
+const paymentData=Object.entries(today.byPaymentType||{}).map(([label,value])=>({label,value:Number(value||0)})).sort((a,b)=>b.value-a.value);
+drawDonutChart(paymentChart,paymentData);
+const lowStockItems=(balance.items||[]).filter(item=>Number(item.stock_actual||0)<10).sort((a,b)=>a.stock_actual-b.stock_actual);
+lowStockList.innerHTML=lowStockItems.length?lowStockItems.map(item=>`<li><span><strong>${item.product_name}</strong><br><span class="muted">${item.company_name} / ${item.branch_name}</span></span><span class="danger-badge">${item.stock_actual} UN</span></li>`).join(""):'<li><span><strong>SIN ALERTAS</strong><br><span class="muted">TODOS LOS PRODUCTOS ESTÁN SOBRE EL MÍNIMO</span></span><span class="danger-badge">OK</span></li>';
+if(companies.length&&!branchCompanyId.value)branchCompanyId.value=companies[0].id;
+}catch(e){console.log(e)}}
+</script>
+</body>
+</html>

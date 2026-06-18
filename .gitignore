@@ -1,0 +1,35 @@
+__pycache__/
+*.py[cod]
+*$py.class
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+*.db
+*.sqlite
+*.sqlite3
+
+.env
+.env.*
+
+node_modules/
+dist/
+build/
+
+*.log
+
+# Entornos virtuales de Python
+venv/
+.venv/
+env/
+ENV/
+
+# Editores / IDE
+.vscode/
+.idea/
+*.swp
+
+# Sistema operativo
+.DS_Store
+Thumbs.db

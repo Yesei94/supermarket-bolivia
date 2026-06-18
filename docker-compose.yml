@@ -1,0 +1,58 @@
+services:
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service-prof
+    ports:
+      - "8000:8000"
+  company-service:
+    build: ./company-service
+    container_name: company-service-prof
+    ports:
+      - "8001:8001"
+  product-service:
+    build: ./product-service
+    container_name: product-service-prof
+    ports:
+      - "8002:8002"
+  inventory-service:
+    build: ./inventory-service
+    container_name: inventory-service-prof
+    ports:
+      - "8003:8003"
+    environment:
+      NOTIFICATION_URL: http://notification-service:8005
+  customer-service:
+    build: ./customer-service
+    container_name: customer-service-prof
+    ports:
+      - "8004:8004"
+  notification-service:
+    build: ./notification-service
+    container_name: notification-service-prof
+    ports:
+      - "8005:8005"
+  sales-service:
+    build: ./sales-service
+    container_name: sales-service-prof
+    ports:
+      - "8006:8006"
+    environment:
+      PRODUCT_URL: http://product-service:8002
+      INVENTORY_URL: http://inventory-service:8003
+      CUSTOMER_URL: http://customer-service:8004
+      NOTIFICATION_URL: http://notification-service:8005
+  frontend:
+    build: ./frontend
+    container_name: supermarket-frontend-prof
+    ports:
+      - "8080:80"
+    volumes:
+      - ./frontend/index.html:/usr/share/nginx/html/index.html:ro
+    depends_on:
+      - auth-service
+      - company-service
+      - product-service
+      - inventory-service
+      - customer-service
+      - notification-service
+      - sales-service
