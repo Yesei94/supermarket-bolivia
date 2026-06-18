@@ -79,7 +79,7 @@ table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}th,td{b
 <div id="setup" class="view">
  <div class="grid">
   <section><h2>Crear supermercado</h2><label>Nombre</label><input id="companyName" placeholder="Nombre del supermercado"><label>Ciudad</label><input id="companyCity" placeholder="Ciudad"><button onclick="createCompany()">Guardar</button></section>
-  <section><h2>Crear sucursal</h2><label>Empresa</label><select id="branchCompanyId"></select><label>Nombre</label><input id="branchName" placeholder="Nombre de la sucursal"><label>Ciudad</label><input id="branchCity" placeholder="Ciudad"><button onclick="createBranch()">Guardar</button></section>
+  <section><h2>Crear sucursal</h2><label>Empresa</label><select id="branchCompanyId"></select><label>Nombre</label><input id="branchName" placeholder="Nombre de la sucursal"><label>Ciudad</label><input id="branchCity" placeholder="Ciudad"><button onclick="createBranch(this)">Guardar</button></section>
  </div>
  <section><h2>Empresas</h2><table><thead><tr><th>N°</th><th>Nombre</th><th>Ciudad</th></tr></thead><tbody id="companiesT"></tbody></table></section>
  <section><h2>Sucursales</h2><table><thead><tr><th>N°</th><th>Empresa</th><th>Sucursal</th><th>Ciudad</th></tr></thead><tbody id="branchesT"></tbody></table></section>
@@ -112,6 +112,7 @@ table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}th,td{b
 
 <div id="reports" class="view">
  <section><h2>Exportación profesional</h2><div class="row"><button class="ok" onclick="downloadInventoryExcel()">Descargar inventario Excel</button><button class="ok" onclick="downloadSalesExcel()">Descargar ventas Excel</button></div></section>
+ <section><h2 id="consolidatedTitle">Saldo total disponible por producto</h2><p class="muted">Selecciona un producto para ver sus existencias sumadas en todas las sucursales registradas.</p><div class="row"><div><label>Producto</label><select id="consProduct" onchange="loadConsolidated()"></select></div></div><table><thead><tr><th>Supermercado / Sucursal</th><th>Stock</th></tr></thead><tbody id="consT"></tbody></table><h3 id="consTotal">SALDO TOTAL DISPONIBLE: 0</h3></section>
  <section><h2>Reporte consolidado de inventario</h2><table><thead><tr><th>Empresa</th><th>Sucursal</th><th>Producto</th><th>Stock</th><th>Alerta</th></tr></thead><tbody id="reportInv"></tbody></table><h3 id="totalInv">Total: 0</h3></section>
  <section><h2>Ventas del día</h2><table><thead><tr><th>Factura</th><th>Cliente</th><th>Producto</th><th>Cantidad</th><th>Total</th><th>Pago</th></tr></thead><tbody id="reportSales"></tbody></table><h3 id="incomeTxt">Ingresos: 0 Bs</h3></section>
 </div>
@@ -168,6 +169,29 @@ const data=await api(URL.inventory+`/inventory/kardex/${productId}`,{headers:H()
 const product=currentProducts.find(x=>String(x.id)===String(productId));
 kardexTitle.textContent=`KARDEX DE PRODUCTO ${product?product.code:""} ${product?product.name:""}`.trim();
 kardexT.innerHTML=data.map(x=>`<tr><td>${new Date(x.date).toLocaleString()}</td><td>${x.movement_type}</td><td>${x.branch_name}</td><td>${x.quantity}</td><td>${x.stock_final}</td><td>${x.detail}</td></tr>`).join("");
+}catch(e){console.log(e)}
+}
+async function loadConsolidated(){
+if(!token)return;
+try{
+const productId=consProduct.value||(currentProducts[0]&&currentProducts[0].id);
+if(!productId){consolidatedTitle.textContent="Saldo total disponible por producto";consT.innerHTML="";consTotal.textContent="SALDO TOTAL DISPONIBLE: 0";return;}
+const data=await api(URL.inventory+`/inventory/product/${productId}/consolidated`,{headers:H()});
+consolidatedTitle.textContent=`Producto: ${data.product_name||""}${data.product_code?" (cód. "+data.product_code+")":""}`;
+const det=data.detalle||[];
+if(!det.length){consT.innerHTML=`<tr><td colspan="2" class="muted">SIN EXISTENCIAS REGISTRADAS PARA ESTE PRODUCTO</td></tr>`;}
+else{
+const groups={};det.forEach(x=>{(groups[x.empresa]=groups[x.empresa]||[]).push(x);});
+let html="";
+Object.keys(groups).forEach(emp=>{
+const rows=groups[emp];const subtotal=rows.reduce((s,r)=>s+Number(r.stock||0),0);
+html+=`<tr style="background:#EEF3FA"><td style="color:#1E3A5F;font-weight:700;border-left:4px solid #3B82F6">🏪 ${emp}</td><td style="color:#1E3A5F;font-weight:700;text-align:right">${subtotal}</td></tr>`;
+rows.forEach(r=>{html+=`<tr><td style="padding-left:28px">${r.sucursal}</td><td>${r.stock}</td></tr>`;});
+});
+consT.innerHTML=html;
+}
+const n=data.sucursales||0;const e=Object.keys(det.reduce((a,x)=>{a[x.empresa]=1;return a;},{})).length;
+consTotal.textContent=`SALDO TOTAL DISPONIBLE: ${data.saldo_total||0} unidades — ${e} ${e===1?"supermercado":"supermercados"}, ${n} ${n===1?"sucursal":"sucursales"}`;
 }catch(e){console.log(e)}
 }
 function getProductStockMap(items){
@@ -307,7 +331,7 @@ function downloadSalesExcel(){return downloadExcelReport(URL.sales+"/reports/sal
 async function api(url,opt={}){let r=await fetch(url,opt);let d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(typeof d.detail=="string"?d.detail:JSON.stringify(d));return d}
 async function login(){try{let d=await api(URL.auth+"/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:"admin",password:"admin123"})});token=d.access_token;loginState.textContent="Autenticado: "+d.role;flash("Login correcto");loadAll()}catch(e){flash(e.message,true)}}
 async function createCompany(){try{const name=requireText(companyName.value,"NOMBRE DE SUPERMERCADO");const city=requireText(companyCity.value,"CIUDAD");let d=await api(URL.company+"/companies",{method:"POST",headers:H(),body:JSON.stringify({name,city})});flash("SUPERMERCADO CREADO");branchCompanyId.value=d.id;loadAll()}catch(e){flash(e.message,true)}}
-async function createBranch(){try{requireSelection(branchCompanyId.value,"UNA EMPRESA");const name=requireText(branchName.value,"NOMBRE DE SUCURSAL");const city=requireText(branchCity.value,"CIUDAD");await api(URL.company+"/branches",{method:"POST",headers:H(),body:JSON.stringify({company_id:+branchCompanyId.value,name,city})});flash("SUCURSAL CREADA");loadAll()}catch(e){flash(e.message,true)}}
+async function createBranch(btn){try{requireSelection(branchCompanyId.value,"UNA EMPRESA");const name=requireText(branchName.value,"NOMBRE DE SUCURSAL");const city=requireText(branchCity.value,"CIUDAD");const empresaTxt=branchCompanyId.options[branchCompanyId.selectedIndex].text;if(!confirm(`¿CONFIRMAS CREAR ESTA SUCURSAL?\n\nSUPERMERCADO: ${empresaTxt}\nSUCURSAL: ${name}\nCIUDAD: ${city}`))return;if(btn)btn.disabled=true;try{await api(URL.company+"/branches",{method:"POST",headers:H(),body:JSON.stringify({company_id:+branchCompanyId.value,name,city})});branchName.value="";branchCity.value="";flash("SUCURSAL CREADA");loadAll()}finally{if(btn)btn.disabled=false}}catch(e){flash(e.message,true)}}
 async function createProduct(){try{const code=requireText(prodCode.value,"CÓDIGO DE PRODUCTO");const name=requireText(prodName.value,"NOMBRE COMERCIAL");const category=requireText(prodCat.value,"CATEGORÍA");const brand=requireText(prodBrand.value,"MARCA");const barcode=requireText(prodBar.value,"CÓDIGO DE BARRAS");const base_price=requirePositiveNumber(prodPrice.value,"PRECIO BASE");let payload={code,name,category,brand,barcode,base_price,status:"ACTIVE"};let result=await api(URL.product+"/products",{method:"POST",headers:H(),body:JSON.stringify(payload)});prodCode.value="";flash("PRODUCTO CREADO");loadAll();return result}catch(e){flash(e.message,true)}}
 async function uploadProductsExcel(){try{if(!token)throw new Error("DEBES INICIAR SESIÓN");if(!productsExcel.files.length)throw new Error("SELECCIONA UN ARCHIVO EXCEL");const form=new FormData();form.append("file",productsExcel.files[0]);const result=await api(URL.product+"/products/loadExcel",{method:"POST",headers:{"Authorization":"Bearer "+token},body:form});productsExcel.value="";flash(`EXCEL CARGADO: ${result.created} CREADOS, ${result.updated} ACTUALIZADOS${result.errors.length?`, ${result.errors.length} FILAS CON ERROR`:""}`);loadAll()}catch(e){flash(e.message,true)}}
 async function createCustomer(){try{const name=requireText(custName.value,"NOMBRE DEL CLIENTE");const document=requireText(custDoc.value,"DOCUMENTO");await api(URL.customer+"/customers",{method:"POST",headers:H(),body:JSON.stringify({name,document})});flash("CLIENTE CREADO");loadAll()}catch(e){flash(e.message,true)}}
@@ -351,6 +375,9 @@ dashInv.innerHTML=invRows;reportInv.innerHTML=(balance.items||[]).map(x=>`<tr cl
 kardexProduct.innerHTML=["<option value=''>SELECCIONA UN PRODUCTO</option>"].concat(products.map(x=>`<option value="${x.id}">${x.code} - ${x.name}</option>`)).join("");
 if(products.length&&!kardexProduct.value)kardexProduct.value=products[0].id;
 await loadKardex();
+consProduct.innerHTML=["<option value=''>SELECCIONA UN PRODUCTO</option>"].concat(products.map(x=>`<option value="${x.id}">${x.code} - ${x.name}</option>`)).join("");
+if(products.length&&!consProduct.value)consProduct.value=products[0].id;
+await loadConsolidated();
 salesT.innerHTML=(salesList||[]).map(x=>`<tr><td>${x.invoice_number}</td><td>${x.customer_name}</td><td>${x.product_name}</td><td>${x.quantity}</td><td>${x.total}</td><td>${x.payment_type}</td></tr>`).join("");
 reportSales.innerHTML=salesT.innerHTML;incomeTxt.textContent="Ingresos: "+(today.totalIncome||0)+" Bs";
 notificationsT.innerHTML=notifs.map(x=>{const meta=getNotificationMeta(x.type);return `<tr class="notif-row ${meta.className}"><td>${new Date(x.date).toLocaleString()}</td><td>${x.customer_id}</td><td>${x.type}</td><td><span class="danger-badge">${meta.priority}</span></td><td>${x.content}</td></tr>`}).join("");

@@ -191,6 +191,24 @@ async def load_excel(file: UploadFile = File(...), token=Depends(verify_token)):
 def by_product(product_id: int, token=Depends(verify_token)):
     db = SessionLocal(); data = db.query(Inventory).filter(Inventory.product_id == product_id).all(); db.close(); return data
 
+@app.get("/inventory/product/{product_id}/consolidated")
+def consolidated_by_product(product_id: int, token=Depends(verify_token)):
+    db = SessionLocal()
+    rows = db.query(Inventory).filter(Inventory.product_id == product_id).all()
+    db.close()
+    detalle = [
+        {"empresa": r.company_name, "sucursal": r.branch_name, "branch_id": r.branch_id, "stock": r.stock_actual}
+        for r in rows
+    ]
+    return {
+        "product_id": product_id,
+        "product_code": rows[0].product_code if rows else "",
+        "product_name": rows[0].product_name if rows else "",
+        "sucursales": len(rows),
+        "saldo_total": sum(r.stock_actual for r in rows),
+        "detalle": detalle,
+    }
+
 @app.get("/inventory/balance")
 def balance(token=Depends(verify_token)):
     db = SessionLocal(); items = db.query(Inventory).all(); total = sum(i.stock_actual for i in items); db.close(); return {"total_general": total, "items": items}
