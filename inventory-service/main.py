@@ -165,7 +165,8 @@ async def transfer(request: TransferRequest, authorization: str = Header(None), 
     if origin.stock_actual <= origin.stock_minimo:
         log(db, "StockLow", f"Stock bajo {origin.product_name}: {origin.stock_actual}")
         await send_notification(authorization, f"ALERTA DE STOCK BAJO EN {origin.product_name} ({origin.branch_name}): {origin.stock_actual} UNIDADES")
-    db.close(); return {"message": "Transferencia completada", "origin_stock": origin.stock_actual, "destination_stock": dest.stock_actual}
+    result = {"message": "Transferencia completada", "origin_stock": origin.stock_actual, "destination_stock": dest.stock_actual}
+    db.close(); return result
 
 @app.post("/inventory/loadExcel")
 async def load_excel(file: UploadFile = File(...), token=Depends(verify_token)):
